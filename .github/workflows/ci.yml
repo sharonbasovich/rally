@@ -1,6 +1,22 @@
 name: Rally checks
 on: [push, pull_request]
 jobs:
+  live:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[live-check]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RALLY_LIVE_URL: https://rally-sharon.azurewebsites.net
+      RALLY_TEST_CAMERA: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config playwright.live.config.ts
   test:
     runs-on: ubuntu-latest
     steps:
