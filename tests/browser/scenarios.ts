@@ -36,13 +36,17 @@ export async function multiplayer(browser:Browser,baseURL:string){
   await b.setOffline(true);
   await expect(second.locator('body')).toHaveAttribute('data-connected','false',{timeout:15000});
   await b.setOffline(false);
-  await expect(second.locator('#setup-keyboard')).toBeVisible({timeout:15000});
-  await second.locator('#setup-keyboard').click();
-  await second.locator('#ready-button').click();
-  // Recreating the WebGL court can take several seconds on CI's software GPU.
+  await expect(second.locator('body')).toHaveAttribute('data-connected','true',{timeout:15000});
+  await expect(second.locator('#setup-keyboard')).toHaveCount(0);
   await expect(second.locator('#resume')).toBeVisible({timeout:15000});
   await second.locator('#resume').click();
   try{await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);}catch(error){console.log('Resume states:',states.map(s=>s&&({phase:s.phase,players:s.players,reason:s.reason})));throw error;}
+  await b.setOffline(true);
+  await expect(second.locator('body')).toHaveAttribute('data-connected','false',{timeout:15000});
+  await expect(first.locator('#pause-title')).toHaveText(/Waiting for your friend/,{timeout:15000});
+  await b.setOffline(false);
+  await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:20000}).toBe(true);
+  await expect(second.locator('#setup-keyboard')).toHaveCount(0);
   expect(errors).toEqual([]);
  }finally{await a.close();await b.close();}
 }
@@ -50,5 +54,5 @@ export async function practice(browser:Browser,baseURL:string){
  const context=await browser.newContext();try{const page=await context.newPage();const resources:string[]=[];page.on('request',r=>resources.push(r.url()));await page.goto(baseURL);await page.getByRole('button',{name:'Try without camera'}).click();await expect(page.locator('.game-screen')).toBeVisible();await expect(page.locator('#overlay')).not.toHaveClass(/visible/,{timeout:10000});expect(resources.some(r=>/mediapipe|\.task|\.wasm|tracking.worker/.test(r))).toBe(false);await page.getByRole('button',{name:'Rally home'}).click();await page.getByRole('button',{name:'Two players, one keyboard'}).click();await expect(page.locator('.game-screen')).toBeVisible();await expect(page.locator('.control-player.right')).toContainText('Enter');}finally{await context.close();}
 }
 export async function unavailableCamera(browser:Browser,baseURL:string){
- const context=await browser.newContext({permissions:['camera']});try{const page=await context.newPage();await page.goto(baseURL);await page.getByRole('button',{name:'Play together'}).click();await page.getByRole('button',{name:'Create a room'}).click();await page.locator('#retry').click();await expect(page.locator('#camera-status')).toContainText(/not available|declined/,{timeout:10000});await page.getByRole('button',{name:'Use keyboard instead'}).click();await expect(page.locator('#ready-button')).toBeEnabled();expect(await page.locator('video').evaluate((v:HTMLVideoElement)=>v.srcObject)).toBeNull();}finally{await context.close();}
+ const context=await browser.newContext({permissions:['camera']});await context.route('**/*.task',route=>route.abort());try{const page=await context.newPage();await page.goto(baseURL);await page.getByRole('button',{name:'Play together'}).click();await page.getByRole('button',{name:'Create a room'}).click();await page.locator('#retry').click();await expect(page.locator('#camera-status')).toContainText(/could not start|could not load|declined/,{timeout:10000});await page.getByRole('button',{name:'Use keyboard instead'}).click();await expect(page.locator('#ready-button')).toBeEnabled();expect(await page.locator('video').evaluate((v:HTMLVideoElement)=>v.srcObject)).toBeNull();}finally{await context.close();}
 }

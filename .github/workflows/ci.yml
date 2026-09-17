@@ -1,9 +1,27 @@
 name: Rally checks
 on: [push, pull_request]
 jobs:
+  browser_live:
+    needs: test
+    if: github.ref == 'refs/heads/browser-tracking' && github.event_name == 'push' && contains(github.event.head_commit.message, '[browser-live-check]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      RALLY_LIVE_URL: https://rally-sharon-browser.azurewebsites.net
+      RALLY_EXPECTED_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/wait-for-deployment.mjs
+      - run: npx playwright test --config playwright.browser-live.config.ts
   live:
     needs: test
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[live-check]')
+    if: github.ref == 'refs/heads/cloud-play' && github.event_name == 'push' && contains(github.event.head_commit.message, '[live-check]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -38,6 +56,11 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-preview
+          path: test-results/**/tracking-warning.png
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

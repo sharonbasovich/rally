@@ -68,9 +68,19 @@ export function createApplication(options:AppOptions){
   };
   socket.on('create',(data,reply)=>join('create',data,reply));socket.on('join',(data,reply)=>join('join',data,reply));
   socket.on('input',data=>{const m=membership.get(socket.id);if(m)rooms.input(m.room,m.side,data);});
+  let browserCamera=false,poseSequence=-1;
+  socket.on('browser-camera',(options,reply)=>{if(typeof options==='function'){reply=options;options={};}const m=membership.get(socket.id);if(!m||typeof reply!=='function')return;void vision.stopOwner(token);if(!options?.preserve||!m.room.players[m.side]?.camera)rooms.setCamera(m.room,m.side,true);browserCamera=true;poseSequence=-1;reply({ok:true});});
+  socket.on('browser-pose',data=>{
+   const m=membership.get(socket.id);if(!m||!browserCamera||!m.room.players[m.side]?.camera||!limit(`pose:${socket.id}`,35,1000))return;
+   if(!data||!Number.isSafeInteger(data.sequence)||data.sequence<=poseSequence||!Number.isFinite(data.age)||data.age<0||data.age>500||!Array.isArray(data.points)||![0,33].includes(data.points.length))return;
+   if(data.points.some((p:Record<string,unknown>)=>!p||![p.x,p.y,p.visibility].every(Number.isFinite)||Number(p.x)<-2||Number(p.x)>3||Number(p.y)<-2||Number(p.y)>3||Number(p.visibility)<0||Number(p.visibility)>1))return;
+   poseSequence=data.sequence;
+   // Server arrival time is authoritative; never accept client clocks or scores.
+   rooms.pose(m.room,m.side,data.points,Date.now());
+  });
   socket.on('keyboard',(reply)=>{const m=membership.get(socket.id);if(m){void vision.stopOwner(token);rooms.setCamera(m.room,m.side,false);}if(typeof reply==='function')reply();});
   socket.on('latency',(timestamp,reply)=>{if(typeof reply==='function')reply(timestamp);});
-  socket.on('pause',()=>{const m=membership.get(socket.id);if(m&&['playing','countdown'].includes(m.room.phase)){m.room.phase='paused';m.room.reason='Time out. Resume when both players are ready.';}});
+  socket.on('pause',()=>{const m=membership.get(socket.id);if(m&&['playing','countdown'].includes(m.room.phase)){m.room.phase='paused';m.room.pauseCause='manual';m.room.reason='Time out. Resume when both players are ready.';}});
   socket.on('resume',()=>{const m=membership.get(socket.id);if(m)rooms.resume(m.room);});
   socket.on('replay',()=>{const m=membership.get(socket.id);if(m)rooms.replay(m.room,m.side);});
   socket.on('leave',()=>{const m=membership.get(socket.id);void vision.stopOwner(token);if(m){rooms.leave(m.room,m.side);socket.leave(m.room.code);membership.delete(socket.id);}});
