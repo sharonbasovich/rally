@@ -8,7 +8,7 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
-    autoDeployTrigger: off
+    autoDeployTrigger: 'off'
     envVars:
       - key: NODE_VERSION
         value: 24.21.0
@@ -21,4 +21,4 @@ services:
       - key: ROBOFLOW_REGION
         value: us
       - key: MAX_CAMERA_STREAMS
-        value: 4
+        value: '4'

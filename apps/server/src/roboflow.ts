@@ -60,9 +60,10 @@ export class Roboflow {
 /** Roboflow DetectionsToDictionary returns pixel coordinates in a predictions envelope. */
 export function landmarks(payload:unknown):Landmark[]{
  const data=payload as {image?:{width:number;height:number};predictions?:Array<{confidence:number;keypoints?:Array<{x:number;y:number;confidence:number;class_id:number}>}>};
+ if(data&&Array.isArray(data.predictions)&&data.predictions.length===0)return [];
  if(!data||!data.image||!Number.isFinite(data.image.width)||!Number.isFinite(data.image.height)||data.image.width<=0||data.image.height<=0||!Array.isArray(data.predictions))throw new Error('Invalid predictions');
  // Multiple people are ambiguous. Pause rather than switching control between bodies.
- const people=data.predictions.filter(p=>p.confidence>=.4);
+ const people=data.predictions.filter(p=>Number.isFinite(p.confidence)&&p.confidence>=.4);
  if(people.length!==1)return [];
  const points:Landmark[]=Array.from({length:33},()=>({x:0,y:0,visibility:0}));
  const cocoToPose=[0,2,5,7,8,11,12,13,14,15,16,23,24,25,26,27,28];
