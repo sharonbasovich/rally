@@ -34,6 +34,8 @@ export class Network {
   if(a&&b){const alpha=Math.min(1,(target-a.time)/(b.time-a.time));game.balls=this.latest.game.balls.map((ball,i)=>{const old=a.data.game.balls[i],next=b.data.game.balls[i];if(!old||!next||Math.hypot(next.x-old.x,next.y-old.y,next.z-old.z)>1.4)return{...ball};return{...next,x:old.x+(next.x-old.x)*alpha,y:old.y+(next.y-old.y)*alpha,z:old.z+(next.z-old.z)*alpha};});game.rackets=this.latest.game.rackets.map((r,i)=>{const old=a.data.game.rackets[i],next=b.data.game.rackets[i];return old&&next?{...next,x:old.x+(next.x-old.x)*alpha,y:old.y+(next.y-old.y)*alpha}:{...r};});}
   return game;
  }
+ async browserCamera(){if(!this.connected||!this.socket)throw new Error('Reconnect to the room before starting your camera.');const result=await this.socket.timeout(5000).emitWithAck('browser-camera');if(!result?.ok)throw new Error('Browser tracking is unavailable on this server.');}
+ browserPose(points:unknown[],sequence:number,age:number){if(this.connected)this.socket?.volatile.emit('browser-pose',{points,sequence,age});}
  async keyboard(){if(!this.connected)return;await new Promise<void>(resolve=>{this.socket?.timeout(2000).emit('keyboard',()=>resolve());});}
  ping(){const start=performance.now();this.socket?.timeout(1500).emit('latency',Date.now(),(error:Error|null)=>{if(!error)this.rtt=Math.round(performance.now()-start);});}
  pause(){this.socket?.emit('pause');}resume(){this.socket?.emit('resume');}replay(){this.socket?.emit('replay');}

@@ -36,7 +36,7 @@ export class Rooms {
  pose(room:Room,side:number,points:Landmark[],timestamp:number){
   const p=room.players[side];if(!p?.camera)return null;const r=p.pose.update(points,timestamp);p.result=r;
   if(r.calibrated&&r.hand){p.poseAt=timestamp;p.input={...r.input,sequence:r.sequence,x:side===1?-r.input.x:r.input.x,tilt:side===1?-r.input.tilt:r.input.tilt,motionX:side===1?-(r.input.motionX??0):r.input.motionX};}
-  else p.poseAt=0;return r;
+  else p.input={...p.input,swing:0,speed:0,motionX:0,motionY:0};return r;
  }
  disconnect(room:Room,side:number){
   const sides=room.mode==='multiplayer'?[side]:[0,1];for(const i of sides){const p=room.players[i];if(p){p.socketId=null;p.ready=false;p.disconnectedAt=Date.now();p.keys.clear();this.setCamera(room,i,false);}}
@@ -44,7 +44,7 @@ export class Rooms {
  }
  leave(room:Room,side:number){this.disconnect(room,side);room.players[side]=null;if(room.mode!=='multiplayer'||!room.players.some(p=>p?.socketId))this.rooms.delete(room.code);else{room.phase='lobby';room.game=new Game(Math.random,true);room.grades=[];room.replays.clear();}}
  expire(now:number){for(const [code,room] of this.rooms){room.players=room.players.map(p=>p&&!p.socketId&&now-(p.disconnectedAt??now)>CONFIG.SEAT_RECOVERY_MS?null:p);if(room.players.every(p=>p===null)||(!room.players.some(p=>p?.socketId)&&now-room.updated>1800000))this.rooms.delete(code);}}
- bothReady(room:Room,now:number){return room.players.every(p=>p?.socketId&&p.ready&&now-p.lastInput<CONFIG.INPUT_TIMEOUT_MS&&(!p.camera||now-p.poseAt<500));}
+ bothReady(room:Room,now:number){return room.players.every(p=>p?.socketId&&p.ready&&now-p.lastInput<CONFIG.INPUT_TIMEOUT_MS&&(!p.camera||now-p.poseAt<1500));}
  resume(room:Room){if(room.phase!=='paused'||!this.bothReady(room,Date.now()))return false;room.phase='countdown';room.countdown=3;room.reason='';return true;}
  replay(room:Room,side:number){if(room.phase!=='results')return;room.replays.add(side);if(room.mode!=='multiplayer'||room.replays.size===2){room.game=new Game(Math.random,true);room.grades=[];room.phase='lobby';room.replays.clear();room.countdown=3;for(const p of room.players)if(p)p.ready=false;}}
  private keyboard(p:Player,side:number,duo:boolean,dt:number){
@@ -57,7 +57,7 @@ export class Rooms {
   const ready=this.bothReady(room,now);
   if(room.phase==='lobby'&&ready){room.phase='countdown';room.countdown=3;}
   if((room.phase==='playing'||room.phase==='countdown')&&!ready){room.phase='paused';room.reason='Play paused. Check your connection or camera, then resume.';}
-  room.players.forEach((p,i)=>{if(p&&!p.camera)this.keyboard(p,i,room.mode==='duo',dt);});
+  room.players.forEach((p,i)=>{if(p&&!p.camera)this.keyboard(p,i,room.mode==='duo',dt);else if(p&&now-p.poseAt>250)p.input={...p.input,swing:0,speed:0,motionX:0,motionY:0};});
   if(room.mode==='practice'&&room.players[1])room.players[1].input=room.game.demoInputs()[1];
   const inputs=room.players.map((p,i)=>p?.input??neutralInput()[i]);
   if(room.phase==='countdown'){room.game.updateRackets(dt,inputs);room.countdown-=dt;if(room.countdown<=0){room.countdown=0;room.phase='playing';}}

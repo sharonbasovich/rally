@@ -1,3 +1,5 @@
+> **Browser-tracking branch:** Camera inference runs on the player's device with no installation. See [browser tracking architecture and setup](docs/BROWSER_TRACKING.md). The original Roboflow/WebRTC version is preserved on `cloud-play`, and remains the live Azure deployment. The cloud-inference documentation below describes that version.
+
 # Rally
 
 Rally is a browser game with a hosted game server and Roboflow cloud motion tracking over WebRTC. Players open an HTTPS link, create or join a room, and choose camera or keyboard. No installation, server address, or shared network is required.
