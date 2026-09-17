@@ -6,7 +6,7 @@ Camera capture, local preview, rendering and sound run in the browser. Roboflow 
 
 ## Deploy
 
-Use the included [Render Blueprint](render.yaml) and [deployment guide](docs/CLOUD_DEPLOYMENT.md). The owner needs Render and Roboflow accounts, managed WebRTC access, and billing/credits. Without a configured Roboflow credential, hosted keyboard play works and camera play reports that it is unavailable.
+Use the [Azure deployment guide](docs/AZURE_DEPLOYMENT.md) for the Azure for Students deployment. The included [Render Blueprint](render.yaml) is an alternative. The owner needs cloud hosting and a Roboflow account with managed WebRTC access and billing/credits. Without a configured Roboflow credential, hosted keyboard play works and camera play reports that it is unavailable. See the [cloud deployment guide](docs/CLOUD_DEPLOYMENT.md) for architecture and acceptance checks.
 
 One web service serves the frontend, API and Socket.IO under the same HTTPS origin. Roboflow supplies TURN relays for camera connections across networks. The default public `yolov8n-pose-640` model requires no custom workspace or training.
 
