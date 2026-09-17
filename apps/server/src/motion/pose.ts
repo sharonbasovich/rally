@@ -1,4 +1,4 @@
-import {clamp, type RacketInput} from './engine';
+import {clamp, type RacketInput} from '@rally/shared';
 export interface Landmark{x:number;y:number;z?:number;visibility?:number}
 export type CalibrationStage='body'|'hand'|'neutral'|'ready';
 import {POSE_CONFIG} from '@rally/shared/config';
@@ -59,3 +59,4 @@ export class PoseInput{
   const sample:PoseSample={sequence:++this.sequence,time:now,wristX:x,wristY:y,paddleX:r.input.x,paddleY:r.input.y,wristVX:vx,wristVY:vy,wristSpeed:speed,elbowAngle:r.elbowAngle,shoulderWidth:width,confidence:r.confidence};this.previous=sample;this.history.push(sample);r.sequence=this.sequence;return finish();
  }
 }
+

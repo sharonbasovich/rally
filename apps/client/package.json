@@ -15,7 +15,6 @@
     "@react-three/fiber": "9.7.0",
     "three": "^0.186.0",
     "@fontsource/nunito": "^5.3.0",
-    "@mediapipe/tasks-vision": "^0.10.32",
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {

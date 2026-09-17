@@ -1,194 +1,52 @@
 # Rally
 
-Rally is a two-player table-tennis game for two laptops placed back to back. Each
-laptop uses its own webcam to track one player and turns that player's hand into a
-virtual racket. The server keeps both screens on the same match state. Camera video
-stays on the laptop that captured it; only racket input is sent over the network.
+Rally is a browser game with a hosted game server and Roboflow cloud motion tracking over WebRTC. Players open an HTTPS link, create or join a room, and choose camera or keyboard. No installation, server address, or shared network is required.
 
-## Technology
+Camera capture, local preview, rendering and sound run in the browser. Roboflow performs inference. Rally's server runs calibration, motion mapping, physics, form scoring, practice AI and multiplayer state. No browser inference model or locally simulated playable mode remains.
 
-- **TypeScript** is used across the client, server, and shared game code.
-- **React and Vite** provide the browser app and development server. React mounts the
-  app, while the fast-changing game loop runs outside React's render cycle.
-- **Three.js** renders the 3D court. The table, rackets, ball, lighting, particles,
-  crowd, and in-world labels are built from Three.js geometry and materials and drawn
-  directly to a WebGL canvas.
-- **MediaPipe Tasks Vision** provides the computer vision layer. Pose Landmarker runs
-  locally in a Web Worker, reads the webcam stream, and supplies body landmarks used to
-  find the playing hand and move the virtual racket. The client tries the GPU delegate
-  first and falls back to CPU when needed.
-- **Socket.IO** connects both clients to the Node.js server. The server owns the shared
-  physics, collisions, scoring, and match state; clients send derived racket input and
-  render the result locally.
-- **Web Audio** handles the local music, hit sounds, table bounces, and voice feedback.
+## Deploy
 
-## Requirements
+Use the included [Render Blueprint](render.yaml) and [deployment guide](docs/CLOUD_DEPLOYMENT.md). The owner needs Render and Roboflow accounts, managed WebRTC access, and billing/credits. Without a configured Roboflow credential, hosted keyboard play works and camera play reports that it is unavailable.
 
-- Node.js 24 or newer
-- Chrome
-- Two laptops that can reach each other over a local network or Tailscale
-- A webcam on each laptop for camera mode
+One web service serves the frontend, API and Socket.IO under the same HTTPS origin. Roboflow supplies TURN relays for camera connections across networks. The default public `yolov8n-pose-640` model requires no custom workspace or training.
 
-Keyboard mode is available without a webcam.
+## Play
 
-## Install
+1. Select **Play together**, create a room and send its link to a teammate.
+2. Choose **Start / restart camera** and allow camera permission, or use the keyboard.
+3. For camera play, stand alone with shoulders and arms visible. Raise your playing hand, then lower it comfortably to calibrate.
+4. Both players select **Ready to rally**. First to seven wins.
 
-Run this on both laptops:
+Keyboard: WASD or arrows move the racket; Space or Enter swings. Hosted practice includes a server-controlled partner. Two players on one keyboard use WASD/Space and arrows/Enter.
 
-```bash
-npm install
+Video streams to Roboflow for inference. Rally receives joint coordinates; your opponent receives game state, not your camera or pose history. See [data handling](docs/CLOUD_DEPLOYMENT.md#data-and-security).
+
+## Contributor checks
+
+Node 24 and npm are needed by developers and CI only. Players never run these commands.
+
+```sh
+npm ci
+npm test
+npm run build
+npm start
 ```
 
-This also copies the local pose model and WebAssembly files into the client so the
-game can run without downloading them during a demo.
+The build creates `apps/client/dist` and `apps/server/dist`. Static asset paths do not depend on the startup directory. For production, set `NODE_ENV=production` and `PUBLIC_ORIGIN` to the exact HTTPS origin, or use Render's automatically supplied URL.
 
-## Run a two-laptop match
+After building, run `npx playwright install chromium` and `npm run test:e2e` for browser tests. `npm run dev` is an optional contributor workflow using a Vite proxy on port 5174 and server on 3001. Real Roboflow callbacks require a public HTTPS origin; automated provider tests use fixtures.
 
-On the host laptop:
+## Code map
 
-```bash
-npm run dev
-```
+- `apps/server/src/app.ts`: sessions, HTTP, Socket.IO, rate limits and lifecycle.
+- `apps/server/src/roboflow.ts`: fixed workflow, managed WebRTC workers, authenticated callbacks and pose normalization.
+- `apps/server/src/motion`: cloud calibration and form evaluation.
+- `apps/server/src/rooms.ts`: room isolation, server controls and simulation, seat recovery.
+- `packages/shared/src/engine.ts`: server physics/scoring; clients import constants and types only.
+- `apps/client/src/engine.ts`: render-only state, without simulation methods.
+- `apps/client/src/tracking.ts`: camera capture, WebRTC transport and cleanup.
+- `apps/client/src/network.ts`: same-origin sessions and snapshot interpolation.
 
-Open `http://localhost:5173` on the host. The server prints a network address such as
-`http://192.168.1.10:3001`. The other laptop will use that address.
+Rooms and sessions are in memory, so a restart ends active matches. Keep one server instance until distributed room routing is implemented. Defaults allow up to 100 rooms and four camera streams; these are admission limits, not measured capacity guarantees. Camera workers expire after 15 minutes and can be restarted.
 
-On the second laptop:
-
-```bash
-npm run dev:client
-```
-
-Open `http://localhost:5173`, choose **Play together**, enter the host's server address,
-and join the room code created by the host.
-
-Both players then:
-
-1. Allow camera access.
-2. Stand far enough back for the shoulders, elbows, and wrists to be visible.
-3. Raise the playing hand until it is selected.
-4. Lower the hand to a comfortable neutral position.
-5. Press **Ready to rally**.
-
-Keep each client open on its own `localhost` URL. This lets Chrome grant camera access
-while the Socket.IO connection goes to the host's network address.
-
-## Networking notes
-
-The two laptops do not need to share video, but they do need a working path to the
-host laptop's game server. The client connects to the host on TCP port `3001`.
-
-The setup we used was a personal hotspot. Both laptops joined the same hotspot, the
-host ran the server, and the second laptop used the host address printed by the
-server. A normal private Wi-Fi network works the same way.
-
-Guest Wi-Fi is often different. Hotels, schools, offices, and event venues may allow
-every device to reach the internet while blocking devices from reaching one another.
-In that case the second laptop cannot connect to the host, even though both laptops
-show the same Wi-Fi name. Captive portals and VPNs can cause similar problems.
-
-Tailscale is another option when local Wi-Fi is unreliable. Install Tailscale on both
-laptops, sign them into the same tailnet, and start the server on the host. Find the
-host's Tailscale IPv4 address with:
-
-```bash
-tailscale ip -4
-```
-
-On the second laptop, enter `http://<tailscale-ip>:3001` as the game server address.
-The two laptops do not have to be on the same physical Wi-Fi when Tailscale can reach
-both of them. The host firewall still needs to allow Node.js to accept connections.
-
-Before pairing, test the connection from the second laptop by opening one of these
-URLs in Chrome:
-
-```text
-http://<host-lan-ip>:3001/health
-http://<host-tailscale-ip>:3001/health
-```
-
-The working URL returns JSON containing `"ok": true`. If it does not load, fix the
-network path before opening the game.
-
-## Power-ups
-
-- **Big Racket** temporarily increases the racket size.
-- **Smash** makes the next successful return faster.
-- **Shield** saves one missed return.
-- **Giga Ball** temporarily makes the ball larger.
-- **Decoy Ball** creates a temporary copy of the ball.
-
-Power-ups come from the meter or from the glowing targets on the table.
-
-## Development commands
-
-```bash
-npm run dev          # Start the client and multiplayer server
-npm run dev:client   # Start only the client
-npm run typecheck    # Check client and server TypeScript
-npm test             # Run unit tests
-npm run test:e2e     # Run Playwright browser tests
-npm run build        # Build the client for production
-```
-
-The end-to-end tests start their own client on port `5174` and server on port `3101`.
-Install the test browser once with:
-
-```bash
-npx playwright install chromium
-```
-
-## Debug mode
-
-Add `?debug=1` to the client URL:
-
-```text
-http://localhost:5173/?debug=1
-```
-
-The simulator reports frame rate, pose tracking rate, network round-trip time, racket
-state, and ball state. Debug scoring and power-ups are for local practice only. The
-server remains authoritative in a networked match.
-
-The vision diagnostic is available at
-`http://localhost:5173/vision-smoke.html`. It loads the real tracking worker and pose
-model without requiring a camera.
-
-## Troubleshooting
-
-### `npm run dev` exits because a port is in use
-
-An older dev process is probably still running. Check the listeners:
-
-```bash
-lsof -nP -iTCP:3001 -sTCP:LISTEN
-lsof -nP -iTCP:5173 -sTCP:LISTEN
-```
-
-Stop a stale process by its PID, then run `npm run dev` again. To use another server
-port:
-
-```bash
-PORT=3002 npm run dev
-```
-
-Give the other laptop the new server address, including `:3002`.
-
-### The second laptop cannot connect
-
-Check that both laptops are on the same network and that no VPN is active. Open
-`http://<host-ip>:3001/health` on the second laptop. A working server returns JSON with
-`"ok": true`.
-
-### Camera access or tracking fails
-
-Use the camera icon in Chrome's address bar to re-enable permission, then choose
-**Recalibrate camera**. Improve the lighting, avoid a bright window behind the player,
-and step back until the upper body and playing arm fit in frame. **Use keyboard instead**
-is available if the camera is unavailable.
-
-### The game feels jittery
-
-Use the debug panel to check CV FPS and network RTT. Both should remain stable on a
-local network. Improve lighting and reduce background motion first. Keyboard mode can
-help determine whether a problem comes from tracking or the network.
+Older hackathon specifications and reviews are historical. This README and the cloud deployment guide describe the current architecture.

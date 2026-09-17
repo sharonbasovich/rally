@@ -58,7 +58,7 @@ export class Game{
  }
   confirmForm(hitId:string,side:number,score:number){const q=this.pendingGrades.find(q=>q.hitId===hitId&&q.side===side);if(!q||!Number.isFinite(score))return false;this.pendingGrades=this.pendingGrades.filter(v=>v!==q);this.awardGrade(side,clamp(Math.round(score),0,100));return true;}
   awardGrade(side:number,quality:number){
-  const roll=this.random(),grade:Grade=roll<1/3?'OK':roll<2/3?'GREAT':'PERFECT',shownQuality=grade==='PERFECT'?Math.max(C.PERFECT_THRESHOLD,quality):grade==='GREAT'?Math.max(C.GREAT_THRESHOLD,Math.min(C.PERFECT_THRESHOLD-1,quality)):Math.max(C.OK_THRESHOLD,Math.min(C.GREAT_THRESHOLD-1,quality)),points=grade==='PERFECT'?C.POWER_PER_PERFECT:grade==='GREAT'?C.POWER_PER_GREAT:C.POWER_PER_OK,displayGrade=grade==='GREAT'?'GOOD':grade;
+  const grade:Grade=quality>=C.PERFECT_THRESHOLD?'PERFECT':quality>=C.GREAT_THRESHOLD?'GREAT':quality>=C.OK_THRESHOLD?'OK':'WEAK',shownQuality=quality,points=grade==='PERFECT'?C.POWER_PER_PERFECT:grade==='GREAT'?C.POWER_PER_GREAT:grade==='OK'?C.POWER_PER_OK:0,displayGrade=grade==='GREAT'?'GOOD':grade;
   const stats=this.playerStats[side],r=this.rackets[side];stats.lastGrade=grade;stats.gradeLife=1.4;stats.quality=shownQuality;stats.meter+=points;if(grade==='PERFECT')stats.perfect++;if(grade==='GREAT')stats.great++;this.score+=points;
   this.popups.push({x:r.x,y:r.y+.35,z:r.z,text:`${displayGrade} +${points}`,life:1,color:grade==='PERFECT'?'#ffe3a6':'#ffffff'});this.events.push({type:'grade',side,grade});
   if(grade==='PERFECT'){this.burst(r.x,r.y,r.z,'#ffe077',18,.6);this.shake=Math.max(this.shake,.014);}

@@ -1,0 +1,20 @@
+import {expect,type Browser} from '@playwright/test';
+export async function multiplayer(browser:Browser,baseURL:string){
+ const a=await browser.newContext({viewport:{width:1440,height:1000}}),b=await browser.newContext({viewport:{width:1440,height:1000}});
+ try{const first=await a.newPage(),second=await b.newPage();const errors:string[]=[];first.on('pageerror',e=>errors.push(e.message));second.on('pageerror',e=>errors.push(e.message));
+ await first.goto(baseURL);await first.getByRole('button',{name:'Play together'}).click();await expect(first.locator('#server-address')).toHaveCount(0);await first.getByRole('button',{name:'Create a room'}).click();
+ await expect(first.locator('#camera-status')).toBeVisible();const link=await first.locator('#share-address').getAttribute('href');expect(link).toMatch(/room=[A-F0-9]{6}/);
+ await first.getByRole('button',{name:'Use keyboard instead'}).click();await second.goto(link!);await second.getByRole('button',{name:'Join room',exact:true}).click();await second.getByRole('button',{name:'Use keyboard instead'}).click();
+ await first.locator('#ready-button').click();await second.locator('#ready-button').click();await expect(first.locator('.game-screen')).toBeVisible();await expect(second.locator('.game-screen')).toBeVisible();await expect(first.locator('#overlay')).not.toHaveClass(/visible/,{timeout:10000});
+ await first.keyboard.down('d');await first.keyboard.down('Space');await expect.poll(async()=>Number(await first.locator('#points-a').textContent())+Number(await first.locator('#points-b').textContent()),{timeout:15000}).toBeGreaterThan(0);await first.keyboard.up('d');await first.keyboard.up('Space');
+ await expect.poll(async()=>await first.locator('#points-b').textContent()).toBe(await second.locator('#points-b').textContent());
+ await b.setOffline(true);await expect(first.locator('#pause-message')).toBeVisible({timeout:25000});await b.setOffline(false);await expect(second.locator('#setup-keyboard')).toBeVisible({timeout:15000});await second.locator('#setup-keyboard').click();await second.locator('#ready-button').click();await expect(second.locator('#resume')).toBeVisible();await second.locator('#resume').click();await expect(first.locator('#overlay')).not.toHaveClass(/visible/,{timeout:10000});
+ expect(errors).toEqual([]);
+ }finally{await a.close();await b.close();}
+}
+export async function practice(browser:Browser,baseURL:string){
+ const context=await browser.newContext();try{const page=await context.newPage();const resources:string[]=[];page.on('request',r=>resources.push(r.url()));await page.goto(baseURL);await page.getByRole('button',{name:'Try without camera'}).click();await expect(page.locator('.game-screen')).toBeVisible();await expect(page.locator('#overlay')).not.toHaveClass(/visible/,{timeout:10000});expect(resources.some(r=>/mediapipe|\.task|\.wasm|tracking.worker/.test(r))).toBe(false);await page.getByRole('button',{name:'Rally home'}).click();await page.getByRole('button',{name:'Two players, one keyboard'}).click();await expect(page.locator('.game-screen')).toBeVisible();await expect(page.locator('.control-player.right')).toContainText('Enter');}finally{await context.close();}
+}
+export async function unavailableCamera(browser:Browser,baseURL:string){
+ const context=await browser.newContext({permissions:['camera']});try{const page=await context.newPage();await page.goto(baseURL);await page.getByRole('button',{name:'Play together'}).click();await page.getByRole('button',{name:'Create a room'}).click();await page.locator('#retry').click();await expect(page.locator('#camera-status')).toContainText(/not available|declined/,{timeout:10000});await page.getByRole('button',{name:'Use keyboard instead'}).click();await expect(page.locator('#ready-button')).toBeEnabled();expect(await page.locator('video').evaluate((v:HTMLVideoElement)=>v.srcObject)).toBeNull();}finally{await context.close();}
+}
