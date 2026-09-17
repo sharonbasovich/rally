@@ -51,7 +51,8 @@ export function createApplication(options:AppOptions){
   try{res.json(await vision.start(lease,{type:'offer',sdp:offer.sdp}));}catch(error){res.status(503).json({error:(error as Error).message});}
  });
  app.post('/api/vision/stop',async(req,res)=>{const lease=vision.leases.get(req.body?.id);if(lease&&lease.owner===res.locals.token){await vision.stop(lease.id);if(![...vision.leases.values()].some(l=>l.owner===lease.owner)){const m=res.locals.member;rooms.setCamera(m.room,m.side,false);}}res.sendStatus(204);});
- const io=new Server(http,{pingInterval:5000,pingTimeout:5000,maxHttpBufferSize:8192,allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)),cors:{origin:options.origin,methods:['GET','POST']}});
+ // Same-origin polling GETs omit Origin; Fetch Metadata still identifies their browser origin.
+ const io=new Server(http,{pingInterval:5000,pingTimeout:5000,maxHttpBufferSize:8192,allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)||(!req.headers.origin&&req.method==='GET'&&req.headers['sec-fetch-site']==='same-origin')),cors:{origin:options.origin,methods:['GET','POST']}});
  io.use((socket,next)=>{const token=socket.handshake.auth?.token,expiry=sessions.get(token);if(typeof token!=='string'||!expiry||expiry<Date.now())return next(new Error('Session expired. Reload to reconnect.'));if(owners.has(token))return next(new Error('Session already connected.'));owners.set(token,socket.id);next();});
  io.on('connection',socket=>{
   const token=socket.handshake.auth.token as string;
