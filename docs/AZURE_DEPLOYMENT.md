@@ -52,13 +52,13 @@ build and package the production files:
 
 ```bash
 npm ci --include=dev
-npm run build
+RALLY_BUILD_SHA=$(git rev-parse HEAD) npm run build
 npm prune --omit=dev
 zip -q -r ../rally-release.zip .deployment package.json apps/client/dist \
   apps/server/dist node_modules -x 'node_modules/@rally/*'
 az webapp deploy --resource-group rally-cloud --name rally-sharon \
   --src-path ../rally-release.zip --type zip --async true \
-  --enable-kudu-warmup false
+  --enable-kudu-warmup false --track-status false
 ```
 
 This builds in the cloud and uploads compiled assets with production
@@ -71,7 +71,8 @@ archive filename or remove only the previous release archive before packaging
 to avoid retaining stale files in a ZIP. Run `npm ci --include=dev` again before
 contributor tests after pruning.
 Inspect deployment logs and `/health`; an accepted upload alone does not mean
-the application is ready. Deploying a prior reviewed commit uses the same
+the application is ready. The health response's `version` must match the
+reviewed commit. Deploying a prior reviewed commit uses the same
 process. Deployments and instance restarts end active matches because room
 state is in memory. Keep the instance count at one.
 
@@ -93,5 +94,6 @@ physical calibration and motion gameplay with a real camera.
 The CI workflow also runs these live checks when a pushed commit message
 contains `[live-check]`. Normal commits and pull-request runs skip them.
 Use that marker only when the Azure deployment is ready and consumption of
-Roboflow credits is intended. No private Roboflow key is sent to CI; tests use
+Roboflow credits is intended. CI waits for the matching deployed commit before
+running the live checks. No private Roboflow key is sent to CI; tests use
 the same public game endpoints as players.

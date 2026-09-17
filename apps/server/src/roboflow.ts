@@ -45,9 +45,14 @@ export class Roboflow {
     api_key:this.config.apiKey,workflow_configuration:{type:'WorkflowConfiguration',image_input_name:'image',video_metadata_input_name:'video_metadata',workflows_parameters:{},workflows_thread_pool_workers:1,cancel_thread_pool_tasks_on_exit:true,workflow_specification:workflow(this.config,lease)},
     webrtc_offer:offer,webrtc_config:{iceServers},webrtc_realtime_processing:true,stream_output:[],data_output:[],processing_timeout:900,requested_plan:'webrtc-gpu-small',requested_region:this.config.region
    })});
-   lease.pipelineId=result.context?.pipeline_id;
+   lease.pipelineId=typeof result.context?.pipeline_id==='string'?result.context.pipeline_id:undefined;
    if(lease.closed){await this.terminate(lease);throw new Error('Camera session was cancelled.');}
-   if(result.type!=='answer'||typeof result.sdp!=='string'||!lease.pipelineId)throw new Error('Motion service returned an invalid connection. Please retry.');
+   // Managed WebRTC responses may omit pipeline_id; closing the peer and the
+   // provider's processing timeout still bound these sessions.
+   if(result.type!=='answer'||typeof result.sdp!=='string'){
+    console.warn('Roboflow connection response shape',JSON.stringify({keys:Object.keys(result),type:result.type,hasSdp:typeof result.sdp==='string',status:result.status}));
+    throw new Error('Motion service returned an invalid connection. Please retry.');
+   }
    return {type:'answer' as const,sdp:result.sdp};
   }catch(error){await this.stop(lease.id);throw error;}
  }

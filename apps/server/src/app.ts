@@ -19,7 +19,7 @@ export function createApplication(options:AppOptions){
  app.disable('x-powered-by');if(options.production)app.set('trust proxy',1);
  app.use((_req,res,next)=>{res.set({'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(self), microphone=()'});if(options.production)res.set('Strict-Transport-Security','max-age=31536000');next();});
  app.use('/api',express.json({limit:'64kb'}),(_req,res,next)=>{res.set('Cache-Control','no-store');next();});
- app.get('/health',(_req,res)=>res.json({ok:true}));
+ app.get('/health',(_req,res)=>res.json({ok:true,version:process.env.RALLY_BUILD_SHA??'development'}));
  app.post('/api/session',(req,res)=>{
   if(!originAllowed(req.headers.origin)){res.sendStatus(403);return;}
   if(!limit(`session:${req.ip}`,30)||sessions.size>=2000){res.status(429).json({error:'Please wait a minute before reconnecting.'});return;}

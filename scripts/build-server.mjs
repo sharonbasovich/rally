@@ -1,2 +1,2 @@
 import {build} from 'esbuild';
-await build({entryPoints:['apps/server/src/index.ts'],outfile:'apps/server/dist/index.js',bundle:true,platform:'node',format:'esm',target:'node24',packages:'external',alias:{'@rally/shared/config':'./packages/shared/src/config.ts','@rally/shared':'./packages/shared/src/engine.ts'},sourcemap:true});
+await build({entryPoints:['apps/server/src/index.ts'],outfile:'apps/server/dist/index.js',bundle:true,platform:'node',format:'esm',target:'node24',packages:'external',alias:{'@rally/shared/config':'./packages/shared/src/config.ts','@rally/shared':'./packages/shared/src/engine.ts'},define:{'process.env.RALLY_BUILD_SHA':JSON.stringify(process.env.RALLY_BUILD_SHA??process.env.GITHUB_SHA??'development')},sourcemap:true});

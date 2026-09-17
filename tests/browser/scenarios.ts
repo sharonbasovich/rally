@@ -25,7 +25,7 @@ export async function multiplayer(browser:Browser,baseURL:string){
   await second.locator('#ready-button').click();
   await expect(first.locator('.game-screen')).toBeVisible();
   await expect(second.locator('.game-screen')).toBeVisible();
-  await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);
+  try{await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);}catch(error){console.log('Resume states:',states.map(s=>s&&({phase:s.phase,players:s.players,reason:s.reason})));throw error;}
   const before=states[0].game.rackets[0].x;
   await first.keyboard.down('d');
   await expect.poll(()=>states[0]?.game.rackets[0].x,{timeout:5000}).toBeGreaterThan(before+.1);
@@ -42,7 +42,7 @@ export async function multiplayer(browser:Browser,baseURL:string){
   // Recreating the WebGL court can take several seconds on CI's software GPU.
   await expect(second.locator('#resume')).toBeVisible({timeout:15000});
   await second.locator('#resume').click();
-  await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);
+  try{await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);}catch(error){console.log('Resume states:',states.map(s=>s&&({phase:s.phase,players:s.players,reason:s.reason})));throw error;}
   expect(errors).toEqual([]);
  }finally{await a.close();await b.close();}
 }
