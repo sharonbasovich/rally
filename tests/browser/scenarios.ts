@@ -39,7 +39,8 @@ export async function multiplayer(browser:Browser,baseURL:string){
   await expect(second.locator('#setup-keyboard')).toBeVisible({timeout:15000});
   await second.locator('#setup-keyboard').click();
   await second.locator('#ready-button').click();
-  await expect(second.locator('#resume')).toBeVisible();
+  // Recreating the WebGL court can take several seconds on CI's software GPU.
+  await expect(second.locator('#resume')).toBeVisible({timeout:15000});
   await second.locator('#resume').click();
   await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);
   expect(errors).toEqual([]);

@@ -10,3 +10,4 @@ body[data-view=game]{background:#05090f;overflow:hidden}body[data-view=game] #ap
 @media(max-width:600px){.game-top{gap:8px;padding:8px 10px}.scoreboard{min-width:137px;padding:0}.scoreboard .stat-label{font-size:6px;letter-spacing:.8px}.scoreboard .match-score{min-width:130px;gap:5px}.score-team>span{display:none}.match-score .score-team #points-a,.match-score .score-team #points-b{font-size:32px}.score-divider{font-size:18px}.round-clock{min-width:60px;padding:0 7px}.round-clock .stat-label{font-size:6px}.round-clock>strong{font-size:23px}}
 .active-effect{font-size:12px;padding:9px 14px}.active-effect b{font-size:16px}.active-effect strong{font-size:9px}
 @media(max-width:600px){.active-effect{font-size:10px;padding:8px 10px}.active-effect b{font-size:14px}.active-effect strong{font-size:8px}}
+[hidden]{display:none!important}
