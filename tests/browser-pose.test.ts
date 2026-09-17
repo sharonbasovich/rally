@@ -22,9 +22,10 @@ it('validates browser landmarks, rejects replay, and ignores poses after keyboar
  }finally{socket.disconnect();await app.close();}
 });
 
-it('holds position through brief occlusion without replaying a swing, then pauses',()=>{
+it('holds position through brief occlusion without replaying a swing, without pausing play',()=>{
  const rooms=new Rooms(),room=rooms.create('a','a');rooms.join(room.code,'b','b');const now=Date.now();
  room.players.forEach(p=>{p!.ready=true;p!.lastInput=now;});const p=room.players[0]!;p.camera=true;p.poseAt=now;p.input={...p.input,x:.7,swing:1,speed:3};room.phase='playing';
  rooms.pose(room,0,[],now+100);rooms.tick(room,.008,now+600);expect(room.phase).toBe('playing');expect(p.input.x).toBe(.7);expect(p.input.swing).toBe(0);
- rooms.tick(room,.008,now+1600);expect(room.phase).toBe('paused');
+ rooms.tick(room,.008,now+1600);expect(room.phase).toBe('playing');expect(p.input.swing).toBe(0);
+ rooms.tick(room,.008,now+5100);expect(room.phase).toBe('paused');expect(room.pauseCause).toBe('connection');
 });

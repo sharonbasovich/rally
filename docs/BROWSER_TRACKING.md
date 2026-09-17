@@ -28,9 +28,14 @@ calibrates landmarks and computes paddle movement, physics, and form scores.
 Rendered gameplay still has the server round trip; this is not zero-latency
 local gameplay or client prediction.
 
-Brief tracking loss holds the last paddle position and clears swing velocity.
-After 1.5 seconds without a valid pose, play pauses. The UI says "Rally paused"
-instead of implying that every camera failure is a network disconnect.
+Tracking loss holds the last paddle position and clears swing velocity, while
+the match continues. A large arcade-style warning asks the player to bring
+their hand back into view. Camera failures offer restart and keyboard options.
+Only network/input loss or an intentional pause stops play. Brief network
+interruptions preserve camera capture and calibration; once both players
+reconnect, a three-second countdown resumes the match automatically. Intentional
+pauses require Resume. Recovery copy distinguishes your connection from your
+friend's connection, and unrecoverable rooms offer a return to the menu.
 
 ## Trust and limitations
 

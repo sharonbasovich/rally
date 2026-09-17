@@ -9,6 +9,7 @@ import {Tracking} from './tracking';
 import {Sound} from './audio';
 import {Network,type Snapshot} from './network';
 import {CONFIG} from '@rally/shared/config';
+import {recoveryState} from './recovery';
 
 const paths:Record<string,string>={sound:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',mute:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6m0-6-5 6"/>',full:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',pause:'<path d="M8 5v14M16 5v14"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',camera:'<rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3"/>',keyboard:'<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h1m4 0h1m4 0h1M6 12h1m4 0h1m4 0h1M7 16h10"/>',back:'<path d="m12 5-7 7 7 7m-7-7h15"/>',players:'<circle cx="8" cy="7" r="3"/><path d="M2 21v-3a6 6 0 0 1 12 0v3m3-16a3 3 0 0 1 0 6m0 4a5 5 0 0 1 5 5"/>',spark:'<path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z"/>'};
 const icon=(n:string)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[n]??''}</svg>`;
@@ -58,19 +59,34 @@ async function startHosted(kind:'practice'|'shared'){
 }
 function renderGame(){
  setView('game');lastEffects='';const side=session==='network'?network.side:0,ownColor=side===0?'coral':'blue',teammateColor=side===0?'blue':'coral';
- screen.innerHTML=`<section class="game-screen"><div class="game-top"><div class="scoreboard"><span class="stat-label">RALLY POINTS</span><strong id="score">0</strong></div><div class="round-clock"><span class="stat-label">FIRST TO 7</span><div class="match-score"><span id="points-a">0</span><small>–</small><span id="points-b">0</span></div></div><div class="rally-stats"><div><span class="stat-label">RALLY</span><strong id="rally">0</strong></div><div><span class="stat-label">BEST</span><strong id="best">0</strong></div></div></div><div class="effects-bar" id="effects"></div><div class="arena-wrap"><canvas id="arena" aria-label="Full 3D table tennis, viewed from your end. Move your racket to return the approaching ball."></canvas><div class="court-tag"><i></i> THE NIGHT COURT <span>${session==='network'?network.code:session==='practice'?'PRACTICE':'LOCAL DUO'}</span></div><button class="view-button" id="view-toggle">View: Player ${side+1} ↻</button><div class="score-popups" id="score-popups"></div><div class="form-feedback" id="form-feedback" aria-live="polite"></div><div class="serve-notice" id="serve-notice"></div><div class="game-overlay" id="overlay"></div></div><div class="game-bottom"><div class="control-player"><span class="player-dot ${ownColor}"></span><div><b>${session==='network'?`Player ${side+1} · you`:'Player 1'}</b><span id="control-one">${mode==='camera'?'Move your hand. Swing to return.':'<kbd>W A S D</kbd> move · <kbd>Space</kbd> swing'}</span></div></div><div class="swing-panel"><div><span>POWER METER</span><b id="meter-number">0%</b></div><div class="meter-track"><i id="meter-fill"></i></div><small id="quality-label">Great swings earn power-ups</small></div>${mode==='camera'?previewMarkup(true):''}<div class="control-player right"><div><b>${session==='network'?`Player ${2-side}`:session==='practice'?'Practice partner':'Player 2'}</b><span>${network.mode==='duo'?'<kbd>↑ ← ↓ →</kbd> move · <kbd>Enter</kbd> swing':network.mode==='practice'?'Your cloud practice partner.':'Opposite screen. Same team.'}</span></div><span class="player-dot ${teammateColor}"></span></div></div></section>`;
+ screen.innerHTML=`<section class="game-screen"><div class="game-top"><div class="scoreboard"><span class="stat-label">RALLY POINTS</span><strong id="score">0</strong></div><div class="round-clock"><span class="stat-label">FIRST TO 7</span><div class="match-score"><span id="points-a">0</span><small>–</small><span id="points-b">0</span></div></div><div class="rally-stats"><div><span class="stat-label">RALLY</span><strong id="rally">0</strong></div><div><span class="stat-label">BEST</span><strong id="best">0</strong></div></div></div><div class="effects-bar" id="effects"></div><div class="arena-wrap"><canvas id="arena" aria-label="Full 3D table tennis, viewed from your end. Move your racket to return the approaching ball."></canvas><div class="court-tag"><i></i> THE NIGHT COURT <span>${session==='network'?network.code:session==='practice'?'PRACTICE':'LOCAL DUO'}</span></div><button class="view-button" id="view-toggle">View: Player ${side+1} ↻</button><div class="score-popups" id="score-popups"></div><div class="form-feedback" id="form-feedback" aria-live="polite"></div><div class="tracking-feedback" id="tracking-feedback" hidden><div role="status" aria-live="polite"><strong id="tracking-title"></strong><small id="tracking-message"></small></div><div class="tracking-actions" id="tracking-actions" hidden><button id="tracking-retry">Restart camera</button><button id="tracking-keyboard">Use keyboard</button></div></div><div class="serve-notice" id="serve-notice"></div><div class="game-overlay" id="overlay"></div></div><div class="game-bottom"><div class="control-player"><span class="player-dot ${ownColor}"></span><div><b>${session==='network'?`Player ${side+1} · you`:'Player 1'}</b><span id="control-one">${mode==='camera'?'Move your hand. Swing to return.':'<kbd>W A S D</kbd> move · <kbd>Space</kbd> swing'}</span></div></div><div class="swing-panel"><div><span>POWER METER</span><b id="meter-number">0%</b></div><div class="meter-track"><i id="meter-fill"></i></div><small id="quality-label">Great swings earn power-ups</small></div>${mode==='camera'?previewMarkup(true):''}<div class="control-player right"><div><b>${session==='network'?`Player ${2-side}`:session==='practice'?'Practice partner':'Player 2'}</b><span>${network.mode==='duo'?'<kbd>↑ ← ↓ →</kbd> move · <kbd>Enter</kbd> swing':network.mode==='practice'?'Your cloud practice partner.':'Opposite screen. Same team.'}</span></div><span class="player-dot ${teammateColor}"></span></div></div></section>`;
  const scoreboard=screen.querySelector<HTMLElement>('.scoreboard')!,roundClock=screen.querySelector<HTMLElement>('.round-clock')!;scoreboard.setAttribute('aria-label','Match score');scoreboard.innerHTML='<span class="stat-label">MATCH SCORE · FIRST TO 7</span><div class="match-score"><div class="score-team"><span>PLAYER 1</span><strong id="points-a">0</strong></div><b class="score-divider">:</b><div class="score-team"><span>PLAYER 2</span><strong id="points-b">0</strong></div></div>';roundClock.innerHTML='<span class="stat-label">RALLY POINTS</span><strong id="score">0</strong>';
  canvas();if(renderer)renderer.viewMode=side;if(mode==='camera')mountVideo();$('view-toggle').onclick=()=>{if(renderer){renderer.viewMode=renderer.viewMode===2?side:2;setText('view-toggle',renderer.viewMode===2?'View: Court ↻':`View: Player ${side+1} ↻`);}};
 }
-function renderPause(reason:string){
+async function useKeyboard(){mode='keyboard';await tracking.stop();ready=true;network.send(keyboard.keys,true,++sequence,true);setText('control-one','WASD / arrows to move · Space to swing');}
+function renderPause(_reason:string){
  if(!document.getElementById('overlay'))return;
- // A slow renderer can alternate between stale and fresh snapshots. Preserve the
- // focused controls while updating the status so recovery remains clickable.
- if(document.getElementById('resume')){setText('pause-message',reason);return;}
- $('overlay').className='game-overlay visible';$('overlay').innerHTML=`<div class="pause-panel"><span class="eyebrow">CONNECTION</span><h2>Rally paused.</h2><p id="pause-message"></p><button class="primary" id="resume">Resume ${icon('arrow')}</button>${mode==='camera'?'<button class="secondary" id="switch-keyboard">Continue with keyboard</button><button class="text-button" id="recalibrate">Recalibrate camera</button>':''}<button class="text-button" id="quit">Back to menu</button><p id="resume-status" role="status"></p></div>`;
- setText('pause-message',reason);$('resume').onclick=()=>{if(mode==='camera'&&!tracking.detected(performance.now())){setText('resume-status','Raise your playing hand, or continue with keyboard.');return;}if(session==='network'){network.send(keyboard.keys,ready,++sequence,true);network.resume();setText('resume-status','Both players must be connected and ready.');}else{paused=false;countdown=3;countBeep=-1;}sound.unlock();};
- if(mode==='camera'){$('switch-keyboard').onclick=async()=>{mode='keyboard';await tracking.stop();ready=true;network.send(keyboard.keys,true,++sequence,true);lastPhase='';renderGame();network.resume();};$('recalibrate').onclick=()=>{tracking.start();setText('resume-status','Camera restarting. Raise your playing hand.');};}
- $('quit').onclick=title;focusPrimary();
+ const state=recoveryState(network.connected,network.recoveryFailed,performance.now()-network.lastReceived>2200,network.latest,network.side);
+ if(!document.getElementById('resume')){
+  $('overlay').className='game-overlay visible';$('overlay').innerHTML=`<div class="pause-panel"><span class="eyebrow">YOUR COURT</span><h2 id="pause-title"></h2><p id="pause-message" role="status"></p><button class="primary" id="resume">Resume ${icon('arrow')}</button><button class="secondary" id="switch-keyboard">Continue with keyboard</button><button class="text-button" id="recalibrate">Restart camera</button><button class="text-button" id="quit">Back to menu</button></div>`;
+  $('resume').onclick=()=>{network.send(keyboard.keys,ready,++sequence,true);network.resume();sound.unlock();};
+  $('switch-keyboard').onclick=()=>{void useKeyboard();};$('recalibrate').onclick=()=>{void tracking.start();};$('quit').onclick=title;
+ }
+ setText('pause-title',state.title);setText('pause-message',state.message);
+ ($('resume') as HTMLButtonElement).disabled=!state.resume;$('resume').hidden=!state.resume;
+ const controls=mode==='camera'&&network.connected&&!network.recoveryFailed;
+ $('switch-keyboard').hidden=!controls;$('recalibrate').hidden=!controls;
+}
+function updateTrackingNotice(now:number){
+ const element=document.getElementById('tracking-feedback');if(!element)return;
+ const lost=mode==='camera'&&(!tracking.result?.hand||!tracking.detected(now));
+ const visible=lost&&network.connected&&now-network.lastReceived<=2200&&network.latest?.phase==='playing';
+ element.hidden=!visible;if(!visible)return;
+ const failed=tracking.error||!tracking.stream;
+ setText('tracking-title',failed?'CAMERA STOPPED':tracking.result?.calibrated?'HAND OUT OF VIEW':'FIND YOUR HAND');
+ setText('tracking-message',failed?'Play continues. Restart your camera or use the keyboard.':tracking.result?.calibrated?'Bring your playing hand and shoulders back into view.':tracking.status);
+ $('tracking-actions').hidden=!failed;
+ $('tracking-retry').onclick=()=>{void tracking.start();};$('tracking-keyboard').onclick=()=>{void useKeyboard();};
 }
 function results(){
  setView('results');ready=false;tracking.stop();renderer?.dispose();renderer=null;sound.end();storedBest=Math.max(storedBest,game.score);try{localStorage.setItem('rally-best',String(storedBest));}catch{}
@@ -87,14 +103,14 @@ network.onUpdate=(snapshot:Snapshot)=>{
  if(view==='game'){
   countdown=snapshot.countdown;
 
-  if(snapshot.phase==='paused'&&lastPhase!=='paused')renderPause(snapshot.reason);
+  if(snapshot.phase==='paused')renderPause(snapshot.reason);
   if(snapshot.phase==='playing'&&lastPhase!=='playing'){$('overlay').className='game-overlay';$('overlay').innerHTML='';}
   lastPhase=snapshot.phase;
  }
 };
 network.onEvents=playEvents;
-network.onDisconnect=()=>{document.body.dataset.connected='false';void tracking.stop();};
-network.onReconnect=()=>{document.body.dataset.connected='true';sequence=0;ready=false;setup();};
+network.onDisconnect=()=>{document.body.dataset.connected='false';};
+network.onReconnect=async()=>{document.body.dataset.connected='true';sequence=0;try{if(mode==='camera'&&tracking.ready&&tracking.stream)await network.browserCamera(true);}catch{await tracking.fail('Camera recovery failed. Restart it or use the keyboard.');}network.send(keyboard.keys,ready,++sequence,true);};
 function updatePreview(now:number){
  const result=tracking.result;
  if(document.getElementById('pose-overlay')&&result){const segments=[[11,12],[11,13],[13,15],[12,14],[14,16]];
@@ -122,13 +138,14 @@ function loop(now:number){const dt=Math.min(.05,(now-last)/1000);last=now;
  if(view==='title'){game.elapsed=now/1000;renderer?.draw(game,now/1000,true);}
  if(mode==='camera'&&(view==='setup'||view==='game')){updatePreview(now);}else if(view==='setup')updatePreview(now);
  if(session==='network'&&(view==='setup'||view==='game'||view==='results')){
-  if(now-lastSend>1000/30){network.send(keyboard.keys,ready&&(mode==='keyboard'||tracking.detected(now)),++sequence);lastSend=now;}
+  if(now-lastSend>1000/30){network.send(keyboard.keys,ready&&(view==='game'||mode==='keyboard'||tracking.detected(now)),++sequence);lastSend=now;}
   if(now-lastPing>2000){network.ping();lastPing=now;}
   if(view==='game'){
    const sampled=network.sample(now);if(sampled)game=sampled;
-   if(!network.connected||now-network.lastReceived>2200){if(lastPhase!=='disconnected'){renderPause(network.error||'Connection interrupted. Reconnecting…');lastPhase='disconnected';}}
+   if(!network.connected||now-network.lastReceived>2200){renderPause(network.error);lastPhase='disconnected';}
+   else if(network.latest?.phase==='paused')renderPause(network.latest.reason);
    else if(network.latest?.phase==='countdown')drawCountdown();
-   renderer?.draw(game,now/1000);updateHud();
+   renderer?.draw(game,now/1000);updateHud();updateTrackingNotice(now);
   }
  }
  requestAnimationFrame(loop);
