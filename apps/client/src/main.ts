@@ -64,6 +64,9 @@ function renderGame(){
 }
 function renderPause(reason:string){
  if(!document.getElementById('overlay'))return;
+ // A slow renderer can alternate between stale and fresh snapshots. Preserve the
+ // focused controls while updating the status so recovery remains clickable.
+ if(document.getElementById('resume')){setText('pause-message',reason);return;}
  $('overlay').className='game-overlay visible';$('overlay').innerHTML=`<div class="pause-panel"><span class="eyebrow">CONNECTION</span><h2>Reconnect to rally.</h2><p id="pause-message"></p><button class="primary" id="resume">Resume ${icon('arrow')}</button>${mode==='camera'?'<button class="secondary" id="switch-keyboard">Continue with keyboard</button><button class="text-button" id="recalibrate">Recalibrate camera</button>':''}<button class="text-button" id="quit">Back to menu</button><p id="resume-status" role="status"></p></div>`;
  setText('pause-message',reason);$('resume').onclick=()=>{if(mode==='camera'&&!tracking.detected(performance.now())){setText('resume-status','Raise your playing hand, or continue with keyboard.');return;}if(session==='network'){network.send(keyboard.keys,ready,++sequence);network.resume();setText('resume-status','Both players must be connected and ready.');}else{paused=false;countdown=3;countBeep=-1;}sound.unlock();};
  if(mode==='camera'){$('switch-keyboard').onclick=async()=>{mode='keyboard';await tracking.stop();ready=true;network.send(keyboard.keys,true,++sequence);lastPhase='';renderGame();network.resume();};$('recalibrate').onclick=()=>{tracking.start();setText('resume-status','Camera restarting. Raise your playing hand.');};}
