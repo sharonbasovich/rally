@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
-import {PoseInput,type Landmark,elbowAngle,type PoseSample} from '../apps/client/src/pose';
-import {scoreForm} from '../apps/client/src/form';
+import {PoseInput,type Landmark,elbowAngle,type PoseSample} from '../apps/server/src/motion/pose';
+import {scoreForm} from '../apps/server/src/motion/form';
 function body(raised=false):Landmark[]{const p=Array.from({length:33},()=>({x:.5,y:.5,visibility:1}));p[11]={x:.4,y:.3,visibility:1};p[12]={x:.6,y:.3,visibility:1};p[23]={x:.43,y:.65,visibility:1};p[24]={x:.57,y:.65,visibility:1};p[13]={x:.35,y:.4,visibility:1};p[15]={x:.3,y:raised?.2:.48,visibility:1};p[16]={x:.7,y:.48,visibility:1};return p;}
 function calibrate(mapper:PoseInput){for(let t=0;t<=500;t+=50)mapper.update(body(),t);for(let t=550;t<=1050;t+=50)mapper.update(body(true),t);for(let t=1100;t<=2100;t+=50)mapper.update(body(),t);}
 describe('body calibrated tracking',()=>{

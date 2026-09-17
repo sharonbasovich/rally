@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: rally
+    runtime: node
+    plan: starter
+    region: virginia
+    numInstances: 1
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: NODE_VERSION
+        value: 24.21.0
+      - key: NODE_ENV
+        value: production
+      - key: ROBOFLOW_API_KEY
+        sync: false
+      - key: ROBOFLOW_MODEL_ID
+        value: yolov8n-pose-640
+      - key: ROBOFLOW_REGION
+        value: us
+      - key: MAX_CAMERA_STREAMS
+        value: '4'

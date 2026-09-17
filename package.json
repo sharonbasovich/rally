@@ -1,1 +1,34 @@
-{"name":"rally-perspective-pong","version":"1.0.0","private":true,"type":"module","workspaces":["apps/client","apps/server","packages/shared"],"engines":{"node":">=24"},"scripts":{"dev":"concurrently -k -n server,client \"npm run dev:server\" \"npm run dev:client\"","dev:client":"npm run dev -w @rally/client","dev:server":"npm run dev -w @rally/server","server":"npm run dev:server","build":"npm run typecheck && npm run build -w @rally/client","typecheck":"tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit","test":"vitest run","test:e2e":"playwright test","postinstall":"node scripts/copy-wasm.mjs"},"devDependencies":{"@playwright/test":"^1.58.2","@types/node":"^24.0.0","concurrently":"^9.2.0","tsx":"^4.20.0","typescript":"^5.9.3","vitest":"^4.0.18"}}
+{
+  "name": "rally-perspective-pong",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/client",
+    "apps/server",
+    "packages/shared"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,client \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "npm run dev -w @rally/client",
+    "dev:server": "npm run dev -w @rally/server",
+    "server": "npm run start",
+    "build": "npm run typecheck && npm run build -w @rally/client && node scripts/build-server.mjs",
+    "typecheck": "tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "start": "node apps/server/dist/index.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

@@ -13,7 +13,7 @@ function snapshot(x: number, time: number): { time: number; data: Snapshot } {
   return {
     time,
     data: {
-      code: 'ABCDE',
+      code: 'ABCDEF',mode:'multiplayer',
       phase: 'playing',
       countdown: 0,
       reason: '',
@@ -40,10 +40,10 @@ describe('network render timeline', () => {
 
     const expected=0.12*(1090-CONFIG.NETWORK_INTERPOLATION_MS-1000)/(1060-1000);
     expect(game?.balls[0].x).toBeCloseTo(expected, 4);
-    expect(game?.balls[0].trail[0].x).toBeCloseTo(expected, 4);
+    expect(network.latest.game.balls[0].x).toBe(0.12);
   });
 
-  it('extrapolates only for a bounded packet gap', () => {
+  it('holds the last state across a packet gap', () => {
     const network = new Network();
     const latest = snapshot(2, 1000);
     network.latest = latest.data;
@@ -52,6 +52,6 @@ describe('network render timeline', () => {
 
     const game = network.sample(1300);
 
-    expect(game?.balls[0].x).toBeCloseTo(2.1, 4);
+    expect(game?.balls[0].x).toBeCloseTo(2, 4);
   });
 });

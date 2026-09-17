@@ -1,4 +1,4 @@
-import {clamp} from './engine';
+import {clamp} from '@rally/shared';
 import {FORM_CONFIG as C} from '@rally/shared/config';
 import type {PoseSample} from './pose';
 export interface FormHit{hitId:string;inputSequence:number;accuracy:number;side?:number}
@@ -15,3 +15,4 @@ export function scoreForm(hit:FormHit,history:PoseSample[],poseSequence=hit.inpu
  const score=Math.round(100*(accuracy*.35+timing*.25+swingSpeed*.2+extension*.1+followThrough*.1));
  return {hitId:hit.hitId,score,label:score>=C.perfect?'PERFECT':score>=C.great?'GREAT':score>=C.ok?'OK':'WEAK',accuracy,timing,swingSpeed,extension,followThrough,confidence};
 }
+
