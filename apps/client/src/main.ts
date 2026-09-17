@@ -83,7 +83,7 @@ network.onUpdate=(snapshot:Snapshot)=>{
  if(view==='setup'&&ready&&['countdown','playing','paused'].includes(snapshot.phase)){sound.unlock();renderGame();lastPhase='';}
  if(view==='game'){
   countdown=snapshot.countdown;
-  if(snapshot.phase==='results'){results();return;}
+
   if(snapshot.phase==='paused'&&lastPhase!=='paused')renderPause(snapshot.reason);
   if(snapshot.phase==='playing'&&lastPhase!=='playing'){$('overlay').className='game-overlay';$('overlay').innerHTML='';}
   lastPhase=snapshot.phase;
