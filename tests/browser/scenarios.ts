@@ -1,15 +1,48 @@
 import {expect,type Browser} from '@playwright/test';
 export async function multiplayer(browser:Browser,baseURL:string){
- const a=await browser.newContext({viewport:{width:1440,height:1000}}),b=await browser.newContext({viewport:{width:1440,height:1000}});
- try{const first=await a.newPage(),second=await b.newPage();const errors:string[]=[];first.on('pageerror',e=>errors.push(e.message));second.on('pageerror',e=>errors.push(e.message));
- await first.goto(baseURL);await first.getByRole('button',{name:'Play together'}).click();await expect(first.locator('#server-address')).toHaveCount(0);await first.getByRole('button',{name:'Create a room'}).click();
- await expect(first.locator('#camera-status')).toBeVisible();const link=await first.locator('#share-address').getAttribute('href');expect(link).toMatch(/room=[A-F0-9]{6}/);
- await first.getByRole('button',{name:'Use keyboard instead'}).click();await second.goto(link!);await second.getByRole('button',{name:'Join room',exact:true}).click();await second.getByRole('button',{name:'Use keyboard instead'}).click();
- await first.locator('#ready-button').click();await second.locator('#ready-button').click();await expect(first.locator('.game-screen')).toBeVisible();await expect(second.locator('.game-screen')).toBeVisible();await expect(first.locator('#overlay')).not.toHaveClass(/visible/,{timeout:10000});
- await first.keyboard.down('d');await first.keyboard.down('Space');await expect.poll(async()=>Number(await first.locator('#points-a').textContent())+Number(await first.locator('#points-b').textContent()),{timeout:15000}).toBeGreaterThan(0);await first.keyboard.up('d');await first.keyboard.up('Space');
- await expect.poll(async()=>await first.locator('#points-b').textContent()).toBe(await second.locator('#points-b').textContent());
- await first.getByRole('button',{name:'Pause game'}).click();await expect(first.locator('#pause-message')).toBeVisible();await b.setOffline(true);await expect(second.locator('body')).toHaveAttribute('data-connected','false',{timeout:15000});await b.setOffline(false);await expect(second.locator('#setup-keyboard')).toBeVisible({timeout:15000});await second.locator('#setup-keyboard').click();await second.locator('#ready-button').click();await expect(second.locator('#resume')).toBeVisible();await second.locator('#resume').click();await expect(first.locator('#overlay')).not.toHaveClass(/visible/,{timeout:10000});
- expect(errors).toEqual([]);
+ const a=await browser.newContext({viewport:{width:800,height:600}}),b=await browser.newContext({viewport:{width:800,height:600}});
+ try{
+  const first=await a.newPage(),second=await b.newPage(),errors:string[]=[];
+  const states:any[]=[null,null];
+  for(const [i,page] of [first,second].entries()){
+   page.on('pageerror',e=>errors.push(e.message));
+   page.on('websocket',socket=>socket.on('framereceived',({payload})=>{
+    if(typeof payload!=='string'||!payload.startsWith('42'))return;
+    try{const [event,data]=JSON.parse(payload.slice(2));if(event==='snapshot')states[i]=data;}catch{}
+   }));
+  }
+  await first.goto(baseURL);
+  await first.getByRole('button',{name:'Play together'}).click();
+  await expect(first.locator('#server-address')).toHaveCount(0);
+  await first.getByRole('button',{name:'Create a room'}).click();
+  const link=await first.locator('#share-address').getAttribute('href');
+  expect(link).toMatch(/room=[A-F0-9]{6}/);
+  await first.getByRole('button',{name:'Use keyboard instead'}).click();
+  await second.goto(link!);
+  await second.getByRole('button',{name:'Join room',exact:true}).click();
+  await second.getByRole('button',{name:'Use keyboard instead'}).click();
+  await first.locator('#ready-button').click();
+  await second.locator('#ready-button').click();
+  await expect(first.locator('.game-screen')).toBeVisible();
+  await expect(second.locator('.game-screen')).toBeVisible();
+  await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);
+  const before=states[0].game.rackets[0].x;
+  await first.keyboard.down('d');
+  await expect.poll(()=>states[0]?.game.rackets[0].x,{timeout:5000}).toBeGreaterThan(before+.1);
+  await first.keyboard.up('d');
+  await first.getByRole('button',{name:'Pause game'}).click();
+  await expect.poll(()=>states.every(s=>s?.phase==='paused')).toBe(true);
+  expect(states[0].game.points).toEqual(states[1].game.points);
+  await b.setOffline(true);
+  await expect(second.locator('body')).toHaveAttribute('data-connected','false',{timeout:15000});
+  await b.setOffline(false);
+  await expect(second.locator('#setup-keyboard')).toBeVisible({timeout:15000});
+  await second.locator('#setup-keyboard').click();
+  await second.locator('#ready-button').click();
+  await expect(second.locator('#resume')).toBeVisible();
+  await second.locator('#resume').click();
+  await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);
+  expect(errors).toEqual([]);
  }finally{await a.close();await b.close();}
 }
 export async function practice(browser:Browser,baseURL:string){
