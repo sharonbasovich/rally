@@ -2,7 +2,13 @@
 
 `browser-tracking` branches from `cloud-play` at `0dbed154341563cf70992589a079b41da0c3ad5b`.
 `cloud-play` retains Roboflow/WebRTC camera streaming. The existing Azure site
-continues to run that version. This branch is not automatically deployed there.
+continues to run that version. This branch has its own deployment:
+
+- Browser tracking: https://rally-sharon-browser.azurewebsites.net
+- Roboflow/WebRTC: https://rally-sharon.azurewebsites.net
+
+Both use the existing `rally-plan` App Service plan in Canada Central.
+Rooms are separate: both players must open the same version.
 
 Players only open an HTTPS website and grant camera permission. No installs,
 Tailscale, developer tools, or local server setup are required.
@@ -49,7 +55,15 @@ inference requests occur, tests model-load failure and keyboard fallback,
 and exercises multiplayer reconnects. Synthetic frames do not validate human
 calibration or motion accuracy.
 
-Deployment uses the same compiled Azure packaging process, but should target
-a separate app for side-by-side testing. Do not replace the existing live
-cloud deployment just to test this branch. No second paid service is
-provisioned by this change.
+Deployment uses the same compiled Azure packaging process, targeting
+`rally-sharon-browser` in resource group `rally-cloud`. Set `PUBLIC_ORIGIN`
+to its HTTPS URL, use Node 24, enable WebSockets and Always On, and keep
+`ROBOFLOW_API_KEY` unset. Both apps share one B1 plan's CPU and memory;
+no additional App Service plan was created.
+
+Initial deployed release: `5e54f6678916e12933eabf97b5def0bbb776f092`.
+Live acceptance tests run with `RALLY_LIVE_URL` set to the browser app and
+`npx playwright test --config playwright.browser-live.config.ts`.
+A push marked `[browser-live-check]` runs these tests in CI after waiting
+for `/health` to report the matching commit. Deployment itself remains
+an explicit Azure action; pushing a branch does not replace either app.
