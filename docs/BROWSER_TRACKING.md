@@ -15,8 +15,8 @@ Video never leaves the browser. The model and pinned WASM runtime are served
 by the website, downloaded only when camera tracking starts. No Roboflow key,
 WebRTC connection, TURN relay, or inference subscription is used by this client.
 
-The worker processes at most one frame at a time, capped at 30 FPS, with GPU
-inference and CPU fallback. Old inference results are discarded. Local
+The worker processes at most one frame at a time, capped at 30 FPS, using CPU
+inference to avoid contention with the 3D court's GPU rendering. Old inference results are discarded. Local
 calibration feedback does not wait for the server. The server independently
 calibrates landmarks and computes paddle movement, physics, and form scores.
 Rendered gameplay still has the server round trip; this is not zero-latency

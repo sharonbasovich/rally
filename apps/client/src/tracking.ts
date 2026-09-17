@@ -23,7 +23,7 @@ export class Tracking {
     this.cancelLoad=()=>{clearTimeout(timeout);reject(new Error('Camera stopped.'));};
     worker.onerror=()=>{clearTimeout(timeout);reject(new Error('Browser tracking could not load. Retry or use the keyboard.'));};
     worker.onmessage=({data})=>{if(data.type==='ready'){clearTimeout(timeout);resolve();}else if(data.type==='error'){clearTimeout(timeout);reject(new Error('Browser tracking could not start. Try another browser or use the keyboard.'));}};
-    worker.postMessage({type:'init',base:new URL(import.meta.env.BASE_URL,location.href).href});
+    worker.postMessage({type:'init',delegate:'CPU',base:new URL(import.meta.env.BASE_URL,location.href).href});
    });
    this.cancelLoad=null;if(generation!==this.generation)return;
    await this.network.browserCamera();if(generation!==this.generation){await this.network.keyboard();return;}
@@ -35,6 +35,7 @@ export class Tracking {
     if(data.type!=='pose')return;
     if(this.timer)clearTimeout(this.timer);
     const age=performance.now()-data.timestamp;
+    if(age>=500)this.status='Tracking is running slowly on this device. Close other camera apps or use the keyboard.';
     if(age<500){const points=data.landmarks as Landmark[];this.receive(this.pose.update(points,data.timestamp));this.network.browserPose(points,++this.frame,age);}
     this.timer=setTimeout(()=>{void this.capture(generation);},Math.max(0,1000/30-age));
    };

@@ -45,7 +45,7 @@ function connectScreen(){
  };
  $('create-room').onclick=()=>connect('create');$('join-room').onclick=()=>connect('join');
 }
-function previewMarkup(compact=false){return `<div class="camera-wrap ${compact?'compact':''}"><div id="video-host"></div><svg class="pose-overlay" id="pose-overlay" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg><span class="camera-badge">${compact?'YOU':'YOUR CAMERA · CLOUD MOTION'}</span>${compact?'':`<div class="camera-placeholder" id="camera-placeholder">${icon('camera')}<span>Your side of the table</span></div>`}</div>`;}
+function previewMarkup(compact=false){return `<div class="camera-wrap ${compact?'compact':''}"><div id="video-host"></div><svg class="pose-overlay" id="pose-overlay" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg><span class="camera-badge">${compact?'YOU':'YOUR CAMERA · BROWSER MOTION'}</span>${compact?'':`<div class="camera-placeholder" id="camera-placeholder">${icon('camera')}<span>Your side of the table</span></div>`}</div>`;}
 function mountVideo(){$('video-host').append(video);}
 function setup(){
  setView('setup');document.body.dataset.connected=String(network.connected);ready=false;mode='camera';renderer?.dispose();renderer=null;
