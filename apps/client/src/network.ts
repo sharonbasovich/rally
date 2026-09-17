@@ -6,7 +6,7 @@ export type {Snapshot};
 export class Network {
  socket:Socket|null=null;side=0;code='';latest:Snapshot|null=null;connected=false;error='';lastReceived=0;rtt=0;token='';mode:Snapshot['mode']='multiplayer';
  onUpdate:(s:Snapshot)=>void=()=>{};onEvents:(events:GameEvent[])=>void=()=>{};onReconnect:()=>void=()=>{};onDisconnect:()=>void=()=>{};
- buffer:{time:number;data:Snapshot}[]=[];
+ buffer:{time:number;data:Snapshot}[]=[];private retry:ReturnType<typeof setTimeout>|null=null;
  async api(path:string,body:unknown,keepalive=false){
   const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${this.token}`},body:JSON.stringify(body),keepalive,signal:keepalive?undefined:AbortSignal.timeout(65000)});
   if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'The court could not connect. Please try again.');}return r.status===204?null:r.json();
@@ -23,7 +23,7 @@ export class Network {
   socket.on('connect',()=>{if(joined)socket.timeout(7000).emit('join',{code:this.code},(err:Error|null,r:{error?:string;side:number;mode:Snapshot['mode']})=>{if(err||r?.error){this.error=r?.error||'Your room could not reconnect. Return to the menu.';return;}this.side=r.side;this.mode=r.mode;this.connected=true;this.error='';this.buffer=[];this.onReconnect();});});
   return new Promise<void>((resolve,reject)=>{
    const timeout=setTimeout(()=>{if(!joined){socket.disconnect();reject(new Error(this.error||'The court did not answer. Please retry.'));}},10000);
-   socket.on('connect_error',(error:Error)=>{this.error=error.message.includes('Session')?error.message:'The court is unavailable. Please retry shortly.';if(error.message.includes('expired'))try{sessionStorage.removeItem('rally-session');}catch{}if(!joined){clearTimeout(timeout);socket.disconnect();reject(new Error(this.error));}});
+   socket.on('connect_error',(error:Error)=>{if(joined&&error.message.includes('already connected')){if(this.retry)clearTimeout(this.retry);this.retry=setTimeout(()=>{if(this.socket===socket)socket.connect();},2000);}this.error=error.message.includes('Session')?error.message:'The court is unavailable. Please retry shortly.';if(error.message.includes('expired'))try{sessionStorage.removeItem('rally-session');}catch{}if(!joined){clearTimeout(timeout);socket.disconnect();reject(new Error(this.error));}});
    socket.once('connect',()=>socket.emit(kind,{code,mode},(result:{error?:string;code:string;side:number;mode:Snapshot['mode']})=>{clearTimeout(timeout);if(result.error){socket.disconnect();reject(new Error(result.error));return;}this.code=result.code;this.side=result.side;this.mode=result.mode;joined=true;this.connected=true;try{sessionStorage.setItem('rally-last-room',this.code);}catch{}resolve();}));socket.connect();
   });
  }
@@ -37,6 +37,6 @@ export class Network {
  async keyboard(){if(!this.connected)return;await new Promise<void>(resolve=>{this.socket?.timeout(2000).emit('keyboard',()=>resolve());});}
  ping(){const start=performance.now();this.socket?.timeout(1500).emit('latency',Date.now(),(error:Error|null)=>{if(!error)this.rtt=Math.round(performance.now()-start);});}
  pause(){this.socket?.emit('pause');}resume(){this.socket?.emit('resume');}replay(){this.socket?.emit('replay');}
- suspend(){this.socket?.disconnect();this.connected=false;}
- close(){if(this.code)try{sessionStorage.removeItem('rally-last-room');}catch{}const s=this.socket;this.socket=null;s?.removeAllListeners();s?.emit('leave');s?.disconnect();this.connected=false;this.buffer=[];this.code='';}
+ suspend(){if(this.retry)clearTimeout(this.retry);this.retry=null;this.socket?.disconnect();this.connected=false;}
+ close(){if(this.retry)clearTimeout(this.retry);this.retry=null;if(this.code)try{sessionStorage.removeItem('rally-last-room');}catch{}const s=this.socket;this.socket=null;s?.removeAllListeners();s?.emit('leave');s?.disconnect();this.connected=false;this.buffer=[];this.code='';}
 }

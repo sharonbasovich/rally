@@ -17,7 +17,7 @@ export function workflow(config:VisionConfig,lease:StreamLease){return {
 
 export class Roboflow {
  leases=new Map<string,StreamLease>();
- constructor(public config:VisionConfig,private request:Fetcher=fetch){}
+ constructor(public config:VisionConfig,private request:Fetcher=fetch){if(!Number.isSafeInteger(config.maxStreams)||config.maxStreams<1)throw new Error('MAX_CAMERA_STREAMS must be a positive integer.');}
  get enabled(){return !!this.config.apiKey&&!!this.config.origin;}
  private async json(url:string,init:RequestInit={},timeout=45000){
   const response=await this.request(url,{...init,signal:AbortSignal.timeout(timeout)});
@@ -40,6 +40,7 @@ export class Roboflow {
  async start(lease:StreamLease,offer:{sdp:string;type:'offer'}){
   try{
    const iceServers=await this.iceServers();
+   if(lease.closed)throw new Error('Camera session was cancelled.');
    const result=await this.json(`${api}/initialise_webrtc_worker`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     api_key:this.config.apiKey,workflow_configuration:{type:'WorkflowConfiguration',image_input_name:'image',video_metadata_input_name:'video_metadata',workflows_parameters:{},workflows_thread_pool_workers:1,cancel_thread_pool_tasks_on_exit:true,workflow_specification:workflow(this.config,lease)},
     webrtc_offer:offer,webrtc_config:{iceServers},webrtc_realtime_processing:true,stream_output:[],data_output:[],processing_timeout:900,requested_plan:'webrtc-gpu-small',requested_region:this.config.region
