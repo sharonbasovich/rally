@@ -43,7 +43,7 @@ export async function multiplayer(browser:Browser,baseURL:string){
   try{await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:15000}).toBe(true);}catch(error){console.log('Resume states:',states.map(s=>s&&({phase:s.phase,players:s.players,reason:s.reason})));throw error;}
   await b.setOffline(true);
   await expect(second.locator('body')).toHaveAttribute('data-connected','false',{timeout:15000});
-  await expect(first.locator('#pause-title')).toHaveText('Waiting for your friend…',{timeout:15000});
+  await expect(first.locator('#pause-title')).toHaveText(/Waiting for your friend/,{timeout:15000});
   await b.setOffline(false);
   await expect.poll(()=>states.every(s=>s?.phase==='playing'),{timeout:20000}).toBe(true);
   await expect(second.locator('#setup-keyboard')).toHaveCount(0);

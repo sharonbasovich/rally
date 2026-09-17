@@ -81,7 +81,7 @@ function updateTrackingNotice(now:number){
  const element=document.getElementById('tracking-feedback');if(!element)return;
  const lost=mode==='camera'&&(!tracking.result?.hand||!tracking.detected(now));
  const visible=lost&&network.connected&&now-network.lastReceived<=2200&&network.latest?.phase==='playing';
- element.hidden=!visible;if(!visible)return;
+ element.hidden=!visible;$('form-feedback').hidden=visible;if(!visible)return;
  const failed=tracking.error||!tracking.stream;
  setText('tracking-title',failed?'CAMERA STOPPED':tracking.result?.calibrated?'HAND OUT OF VIEW':'FIND YOUR HAND');
  setText('tracking-message',failed?'Play continues. Restart your camera or use the keyboard.':tracking.result?.calibrated?'Bring your playing hand and shoulders back into view.':tracking.status);
