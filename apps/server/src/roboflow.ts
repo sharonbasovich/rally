@@ -21,7 +21,7 @@ export class Roboflow {
  get enabled(){return !!this.config.apiKey&&!!this.config.origin;}
  private async json(url:string,init:RequestInit={},timeout=45000){
   const response=await this.request(url,{...init,signal:AbortSignal.timeout(timeout)});
-  if(!response.ok)throw new Error('Motion service could not start. Please retry shortly or use the keyboard.');
+  if(!response.ok){console.warn(`Roboflow ${new URL(url).pathname} returned HTTP ${response.status}`);throw new Error('Motion service could not start. Please retry shortly or use the keyboard.');}
   return response.status===204?{}:response.json();
  }
  async iceServers(){

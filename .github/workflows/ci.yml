@@ -2,6 +2,7 @@ name: Rally checks
 on: [push, pull_request]
 jobs:
   live:
+    needs: test
     if: github.event_name == 'push' && contains(github.event.head_commit.message, '[live-check]')
     runs-on: ubuntu-latest
     timeout-minutes: 10

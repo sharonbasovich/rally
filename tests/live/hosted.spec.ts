@@ -21,11 +21,13 @@ test('Roboflow receives synthetic video through TURN and returns cloud poses',as
   await page.goto(baseURL!);
   await page.getByRole('button',{name:'Play together'}).click();
   await page.getByRole('button',{name:'Create a room'}).click();
+  page.on('response',r=>{if(/\/api\/vision\/(prepare|start|stop)$/.test(r.url()))console.log('Camera endpoint',new URL(r.url()).pathname,r.status());});
   const prepared=page.waitForResponse(r=>r.url().endsWith('/api/vision/prepare'));
   await page.locator('#retry').click();
   const prepare=await prepared;
   expect(prepare.status(),await prepare.text()).toBe(200);
-  await expect.poll(()=>poses,{timeout:90000,message:'Cloud inference must deliver fresh pose callbacks'}).toBeGreaterThan(3);
+  try{await expect.poll(()=>poses,{timeout:90000,message:'Cloud inference must deliver fresh pose callbacks'}).toBeGreaterThan(3);}
+  catch(error){console.log('Camera status:',await page.locator('#camera-status').textContent());console.log('Peer states:',await page.evaluate(()=>(window as any).__rallyTestPeers.map((p:RTCPeerConnection)=>({connection:p.connectionState,ice:p.iceConnectionState,gathering:p.iceGatheringState}))));throw error;}
   const relay=await page.evaluate(async()=>{
    const peers=(window as any).__rallyTestPeers as RTCPeerConnection[];
    for(const pc of peers){

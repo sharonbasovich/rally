@@ -27,7 +27,7 @@ export class Network {
    socket.once('connect',()=>socket.emit(kind,{code,mode},(result:{error?:string;code:string;side:number;mode:Snapshot['mode']})=>{clearTimeout(timeout);if(result.error){socket.disconnect();reject(new Error(result.error));return;}this.code=result.code;this.side=result.side;this.mode=result.mode;joined=true;this.connected=true;try{sessionStorage.setItem('rally-last-room',this.code);}catch{}resolve();}));socket.connect();
   });
  }
- send(keys:Set<string>,ready:boolean,sequence:number){if(this.connected)this.socket?.volatile.emit('input',{keys:[...keys],ready,sequence});}
+ send(keys:Set<string>,ready:boolean,sequence:number,reliable=false){if(this.connected){const emitter=reliable?this.socket:this.socket?.volatile;emitter?.emit('input',{keys:[...keys],ready,sequence});}}
  sample(now:number):Game|null{
   if(!this.latest)return null;const target=now-CONFIG.NETWORK_INTERPOLATION_MS,game=Object.assign(new Game(),this.latest.game);
   const a=[...this.buffer].reverse().find(v=>v.time<=target),b=this.buffer.find(v=>v.time>target);
